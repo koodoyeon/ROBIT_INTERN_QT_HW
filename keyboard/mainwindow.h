@@ -29,22 +29,21 @@ private slots:
     void on_capsLock_clicked();
     void on_shift_l_clicked();
     void on_shift_r_clicked();
-    void on_tap_clicked(); // 이 줄을 추가하세요.
+    void on_tap_clicked(); // 탭 버튼 추가
 
 private:
     Ui::MainWindow *ui;
-    bool isKoreanKeyboard;
-    bool isCapsLock;
-    bool isShiftPressed;
+    bool isKoreanKeyboard;  // 한/영 키보드 전환 상태
+    bool isCapsLock;        // Caps Lock 상태
+    bool isShiftPressed;    // Shift 키 눌림 상태
 
-    void insertText(const QString &text);
-    void moveCursorToEnd();
-    void simulateWinKeyPress(); // Win 키 이벤트 시뮬레이션 함수 선언
+    void insertText(const QString &text); // 텍스트 삽입 함수
+    void moveCursorToEnd();  // 커서를 텍스트 끝으로 이동
+    void simulateWinKeyPress(); // Win 키 이벤트 시뮬레이션
 
 protected:
-    void keyPressEvent(QKeyEvent *event) override; // 키 입력 처리
-    void keyReleaseEvent(QKeyEvent *event) override; // 키 해제 처리
-
+    void keyPressEvent(QKeyEvent *event) override;  // 키 입력 처리
+    void keyReleaseEvent(QKeyEvent *event) override;  // 키 해제 처리
 };
 
 #endif // MAINWINDOW_H
