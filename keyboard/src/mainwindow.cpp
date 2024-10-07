@@ -38,6 +38,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->shift_l, &QPushButton::clicked, this, &MainWindow::on_shift_l_clicked);
     connect(ui->shift_r, &QPushButton::clicked, this, &MainWindow::on_shift_r_clicked);
     connect(ui->tap, &QPushButton::clicked, this, &MainWindow::on_tap_clicked);
+
+    updateCursor(); // 초기 커서 업데이트
 }
 
 MainWindow::~MainWindow() {
@@ -103,111 +105,144 @@ void MainWindow::on_key_clicked() {
     QPushButton *button = qobject_cast<QPushButton*>(sender());
     if (button) {
         QString keyText = button->text();
-
         // 특수 기호 처리
         if (keyText.contains("\n")) {
             keyText = keyText.split("\n").first(); // 텍스트가 두 줄인 경우 첫 번째 줄만 사용
         }
 
-        // CapsLock이 활성화된 상태에서 한글일 경우 쌍자음 처리
-        if (isKoreanKeyboard) {
+        if (isKoreanKeyboard && isCapsLock) {
+            if (keyText == "ㅂ") keyText = "ㅃ";
+            else if (keyText == "ㅈ") keyText = "ㅉ";
+            else if (keyText == "ㄷ") keyText = "ㄸ";
+            else if (keyText == "ㄱ") keyText = "ㄲ";
+            else if (keyText == "ㅅ") keyText = "ㅆ";
+            else if (keyText == "ㅐ") keyText = "ㅒ";
+            else if (keyText == "ㅔ") keyText = "ㅖ";
+        } else if (!isKoreanKeyboard && isCapsLock) {
+            keyText = keyText.toUpper();
+        } else {
+            // Shift가 눌린 경우
             if (isShiftPressed) {
-                if (keyText == "ㅂ") keyText = "ㅃ";
-                else if (keyText == "ㅈ") keyText = "ㅉ";
-                else if (keyText == "ㄷ") keyText = "ㄸ";
-                else if (keyText == "ㄱ") keyText = "ㄲ";
-                else if (keyText == "ㅅ") keyText = "ㅆ";
-                else if (keyText == "ㅐ") keyText = "ㅒ";
-                else if (keyText == "ㅔ") keyText = "ㅖ";
+                if (keyText == "1") keyText = "!";
+                else if (keyText == "2") keyText = "@";
+                else if (keyText == "3") keyText = "#";
+                else if (keyText == "4") keyText = "$";
+                else if (keyText == "5") keyText = "%";
+                else if (keyText == "6") keyText = "^";
+                else if (keyText == "7") keyText = "&";
+                else if (keyText == "8") keyText = "*";
+                else if (keyText == "9") keyText = "(";
+                else if (keyText == "0") keyText = ")";
+                else if (keyText == "-") keyText = "_";
+                else if (keyText == "=") keyText = "+";
+                else if (keyText == "[") keyText = "{";
+                else if (keyText == "]") keyText = "}";
+                else if (keyText == ";") keyText = ":";
+                else if (keyText == "'") keyText = "\"";
+                else if (keyText == ",") keyText = "<";
+                else if (keyText == ".") keyText = ">";
+                else if (keyText == "/") keyText = "?";
             }
-        } else if (!isKoreanKeyboard) {
-            if (isCapsLock || isShiftPressed) {
-                keyText = keyText.toUpper();
-            } else {
-                keyText = keyText.toLower();
-            }
+            keyText = keyText.toLower();
         }
-
-        insertText(keyText); // 입력된 키를 텍스트에 추가
-        moveCursorToEnd(); // 커서를 끝으로 이동
+        insertText(keyText);
     }
 }
 
 void MainWindow::insertText(const QString &text) {
-    QTextCursor cursor = ui->textEdit->textCursor();
-    cursor.insertText(text);
-    ui->textEdit->setTextCursor(cursor);
-    // 커서 위치를 조정
-    moveCursorToEnd();
+    // 입력된 텍스트가 비어 있지 않은 경우에만 추가
+    if (!text.isEmpty()) {
+        QString currentText = ui->textEdit->toPlainText();
+        // 텍스트에 커서가 있던 위치에서 텍스트 추가
+        currentText += text;
+        ui->textEdit->setPlainText(currentText); // 텍스트 업데이트
+        moveCursorToEnd(); // 커서를 끝으로 이동
+    }
 }
 
 void MainWindow::moveCursorToEnd() {
+    QString text = ui->textEdit->toPlainText();
+    // 기존 커서를 지우고 '_' 추가
+    if (!text.endsWith("_")) {
+        ui->textEdit->setPlainText(text + "_"); // 새로운 커서 추가
+    } else {
+        ui->textEdit->setPlainText(text); // '_'가 이미 있을 경우 업데이트 하지 않음
+    }
+
     QTextCursor cursor = ui->textEdit->textCursor();
-    cursor.movePosition(QTextCursor::End);
+    cursor.movePosition(QTextCursor::End); // 커서를 텍스트 끝으로 이동
     ui->textEdit->setTextCursor(cursor);
 }
 
+void MainWindow::updateCursor() {
+    // 텍스트가 비어있지 않을 경우에만 커서 업데이트
+    QString text = ui->textEdit->toPlainText();
+    if (!text.endsWith("_")) {
+        ui->textEdit->setPlainText(text + "_"); // 커서 추가
+        moveCursorToEnd(); // 커서 이동
+    }
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+    // Caps Lock과 Shift 상태를 체크
+    if (event->key() == Qt::Key_CapsLock) {
+        isCapsLock = !isCapsLock;
+        return;
+    }
+    if (event->key() == Qt::Key_Shift) {
+        isShiftPressed = true;
+        return;
+    }
+    // 기타 키 처리
+    QMainWindow::keyPressEvent(event);
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Shift) {
+        isShiftPressed = false;
+        return;
+    }
+    QMainWindow::keyReleaseEvent(event);
+}
+
 void MainWindow::on_copy_clicked() {
-    QString allText = ui->textEdit->toPlainText(); // 텍스트 에디터의 모든 텍스트 가져오기
     QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setText(allText); // 클립보드에 텍스트 설정
+    clipboard->setText(ui->textEdit->toPlainText()); // 텍스트 편집기의 내용을 클립보드에 복사
 }
 
 void MainWindow::on_clear_clicked() {
-    ui->textEdit->clear(); // 텍스트 에디터 비우기
-    moveCursorToEnd(); // 커서를 마지막 위치로 이동
+    ui->textEdit->clear(); // 텍스트 편집기 내용 지우기
 }
 
 void MainWindow::on_space_clicked() {
-    insertText(" "); // 공백 삽입
+    insertText(" "); // 공백 추가
 }
 
 void MainWindow::on_enter_clicked() {
-    insertText("\n"); // 줄바꿈 삽입
+    insertText("\n"); // 줄 바꿈 추가
 }
 
 void MainWindow::on_backspace_clicked() {
     QTextCursor cursor = ui->textEdit->textCursor();
-
-    if (cursor.hasSelection()) {
-        cursor.removeSelectedText(); // 선택된 텍스트가 있으면 삭제
-    } else {
-        cursor.deletePreviousChar(); // 선택된 텍스트가 없으면 이전 문자를 삭제
+    if (cursor.position() > 0) {
+        cursor.deletePreviousChar(); // 이전 문자 삭제
     }
-    ui->textEdit->setTextCursor(cursor); // 커서 위치 업데이트
+    ui->textEdit->setTextCursor(cursor);
 }
 
 void MainWindow::on_capsLock_clicked() {
-    isCapsLock = !isCapsLock; // Caps Lock 토글
-    ui->capslock->setStyleSheet(isCapsLock ? "background-color: darkgray;" : ""); // 버튼 색상 변경
+    isCapsLock = !isCapsLock; // Caps Lock 상태 토글
 }
 
 void MainWindow::on_shift_l_clicked() {
-    isShiftPressed = true; // Shift 키 눌림 처리
+    isShiftPressed = true; // 좌측 Shift 누름
 }
 
 void MainWindow::on_shift_r_clicked() {
-    isShiftPressed = true; // Shift 키 눌림 처리
+    isShiftPressed = true; // 우측 Shift 누름
 }
 
-// 탭 버튼 클릭 처리 함수
 void MainWindow::on_tap_clicked() {
-    QString text = ui->textEdit->toPlainText();  // 텍스트 에디터에 있는 내용을 가져옴
-    qDebug() << "Current text: " << text;  // 텍스트를 디버그 출력
-}
-
-// 키 입력 처리 함수
-void MainWindow::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Shift) {
-        isShiftPressed = true;  // Shift 키 눌림 상태로 변경
-    }
-    QMainWindow::keyPressEvent(event);  // 기본 키 입력 처리 호출
-}
-
-// 키 해제 처리 함수
-void MainWindow::keyReleaseEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Shift) {
-        isShiftPressed = false;  // Shift 키 해제 상태로 변경
-    }
-    QMainWindow::keyReleaseEvent(event);  // 기본 키 해제 처리 호출
+    // Tab 키와 동일한 동작 수행
+    insertText("\t"); // 탭 추가
 }
